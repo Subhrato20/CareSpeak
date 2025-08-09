@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+import httpx
 from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -33,20 +34,19 @@ class SymptomSearchPipeline:
         if not self.openai_api_key:
             raise ValueError("OPENAI_API_KEY not found in environment variables")
         
-        # Initialize OpenAI client with clean configuration
+        # Initialize OpenAI client with a custom HTTPX client that ignores env proxies
         try:
-            self.client = OpenAI(api_key=self.openai_api_key)
+            http_client = httpx.Client(trust_env=False)
+            self.client = OpenAI(api_key=self.openai_api_key, http_client=http_client)
         except TypeError as e:
             if "proxies" in str(e):
-                # Handle the proxies issue by ensuring clean initialization
-                print("Warning: Detected proxies parameter issue, attempting clean initialization...")
-                # Clear any proxy-related environment variables
+                # Fallback: clear proxies from env and try again
                 proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'NO_PROXY', 'no_proxy']
                 for var in proxy_vars:
                     if var in os.environ:
                         del os.environ[var]
-                # Try again with clean environment
-                self.client = OpenAI(api_key=self.openai_api_key)
+                http_client = httpx.Client(trust_env=False)
+                self.client = OpenAI(api_key=self.openai_api_key, http_client=http_client)
             else:
                 raise e
     
@@ -90,7 +90,7 @@ class SymptomSearchPipeline:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": conversation}
@@ -239,7 +239,7 @@ class SymptomSearchPipeline:
             user_prompt = f"Symptoms: {', '.join(symptoms)}\nSeverity: {symptoms_data.get('severity', 'unknown')}\nDuration: {symptoms_data.get('duration', 'unknown')}"
             
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -434,7 +434,7 @@ class SymptomSearchPipeline:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}

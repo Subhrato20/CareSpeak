@@ -8,13 +8,13 @@ I've successfully implemented your sophisticated multi-layer GPT pipeline that p
 
 ### **Layer 1: Symptom Extraction**
 - **Input**: User conversation (e.g., "I've been having headaches and fever for 2 days")
-- **Process**: GPT-3.5-turbo analyzes conversation to extract specific symptoms
+- **Process**: GPT-5 analyzes conversation to extract specific symptoms
 - **Output**: Structured symptom data with severity, duration, and context
 - **Example**: `{"symptoms": ["headache", "fever"], "severity": "moderate", "duration": "2 days"}`
 
 ### **Layer 2: Medicine Recommendation**
 - **Input**: Extracted symptoms from Layer 1
-- **Process**: GPT-3.5-turbo recommends appropriate over-the-counter medicines
+- **Process**: GPT-5 recommends appropriate over-the-counter medicines
 - **Output**: List of specific medicine names
 - **Example**: `["acetaminophen", "ibuprofen", "aspirin"]`
 
@@ -26,7 +26,7 @@ I've successfully implemented your sophisticated multi-layer GPT pipeline that p
 
 ### **Layer 4: Response Formatting**
 - **Input**: Amazon search results + original symptoms
-- **Process**: GPT-3.5-turbo extracts key details and formats natural language response
+- **Process**: GPT-5 extracts key details and formats natural language response
 - **Output**: Conversational response ready for voice communication
 - **Example**: "Based on your symptoms of headache and fever, I found some recommendations including Tylenol Extra Strength for $8.99 with 4.7 stars from 15,420 reviews..."
 
@@ -107,8 +107,8 @@ User: "I've been having a really bad headache and fever for the past 2 days. I a
 ```
 
 **Layer 4 - Natural Language Response:**
-```
-"Based on your symptoms of headache and fever that you've been experiencing for 2 days, I found some recommendations including Tylenol Extra Strength Acetaminophen for $8.99 with a 4.7-star rating from over 15,400 reviews. This medication can help with both your headache and fever. I also found Ibuprofen options that could provide relief for your body aches and fatigue. Remember to consult with a healthcare professional for proper dosage and if symptoms persist or worsen."
+```text
+Based on your symptoms of headache and fever that you've been experiencing for 2 days, I found some recommendations including Tylenol Extra Strength Acetaminophen for $8.99 with a 4.7-star rating from over 15,400 reviews. This medication can help with both your headache and fever. I also found Ibuprofen options that could provide relief for your body aches and fatigue. Remember to consult with a healthcare professional for proper dosage and if symptoms persist or worsen.
 ```
 
 ## 🔧 **Technical Implementation**

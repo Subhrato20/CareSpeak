@@ -19,6 +19,12 @@ class SymptomSearchTool:
         
         if not self.api_key:
             raise ValueError("SEARCHAPI_API_KEY not found in environment variables")
+        
+        # Create a clean session without proxies to avoid issues
+        self.session = requests.Session()
+        # Clear any proxy settings that might be causing issues
+        self.session.proxies = {}
+        self.session.trust_env = False  # Don't use environment proxy settings
     
     def search_products_by_symptoms(self, symptoms: str, max_results: int = 5) -> Dict:
         """
@@ -44,8 +50,8 @@ class SymptomSearchTool:
                 "sort_by": "featured"  # Default sort order
             }
             
-            # Make API request
-            response = requests.get(self.base_url, params=params, timeout=30)
+            # Make API request using the clean session
+            response = self.session.get(self.base_url, params=params, timeout=30)
             response.raise_for_status()
             
             # Parse response

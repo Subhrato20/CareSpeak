@@ -10,6 +10,51 @@ load_dotenv()
 VAPI_PUBLIC_KEY = os.getenv('VAPI_PUBLIC_KEY')
 ASSISTANT_ID = os.getenv('ASSISTANT_ID')
 
+def create_vapi_client():
+    """
+    Create a Vapi client with proper error handling.
+    This function ensures that only the correct parameters are passed to the Vapi client.
+    """
+    try:
+        # Clear any proxy-related environment variables that might be causing issues
+        proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'no_proxy']
+        for var in proxy_vars:
+            if var in os.environ:
+                del os.environ[var]
+        
+        # Clear any Vapi-related environment variables that might be causing issues
+        vapi_vars = ['VAPI_INSTALL', 'VAPI_CONFIG', 'VAPI_ENV']
+        for var in vapi_vars:
+            if var in os.environ:
+                del os.environ[var]
+        
+        # Create Vapi client with only the required parameters
+        # This prevents issues with unexpected parameters like 'proxies'
+        print(f"Creating Vapi client with API key: {VAPI_PUBLIC_KEY[:8]}..." if VAPI_PUBLIC_KEY else "Creating Vapi client...")
+        
+        # Try to create the client with explicit parameter filtering
+        try:
+            return Vapi(api_key=VAPI_PUBLIC_KEY)
+        except TypeError as e:
+            if "proxies" in str(e):
+                # Handle the proxies issue by ensuring clean initialization
+                print("Warning: Detected proxies parameter issue, attempting clean initialization...")
+                # Try to create the client with explicit parameter filtering
+                try:
+                    # Import the module again to ensure clean state
+                    import vapi_python
+                    client = vapi_python.Vapi(api_key=VAPI_PUBLIC_KEY)
+                    return client
+                except Exception as inner_e:
+                    print(f"Failed to create client with clean initialization: {inner_e}")
+                    raise e
+            else:
+                raise e
+                
+    except Exception as e:
+        print(f"Error creating Vapi client: {e}")
+        raise e
+
 def main():
     """
     This function initializes the Vapi client and starts a call.
@@ -29,8 +74,10 @@ def main():
         return
 
     try:
-        # Initialize the Vapi client
-        vapi = Vapi(api_key=VAPI_PUBLIC_KEY)
+        # Initialize the Vapi client using the wrapper function
+        print("Initializing Vapi client...")
+        vapi = create_vapi_client()
+        print("✅ Vapi client initialized successfully!")
 
         # Start the call with your assistant
         # The SDK handles the WebSocket connection and audio streaming
@@ -50,10 +97,22 @@ def main():
     except KeyboardInterrupt:
         print("\nStopping the call...")
         # The 'stop' method will gracefully close the connection
-        vapi.stop()
+        if 'vapi' in locals():
+            vapi.stop()
         print("Call stopped.")
     except Exception as e:
         print(f"An error occurred: {e}")
+        # Print more detailed error information for debugging
+        import traceback
+        traceback.print_exc()
+        
+        # Provide helpful error information
+        print("\n--- Troubleshooting Tips ---")
+        print("1. Make sure your VAPI_PUBLIC_KEY is correct in the .env file")
+        print("2. Make sure your ASSISTANT_ID is correct in the .env file")
+        print("3. Check that you have a stable internet connection")
+        print("4. Try running 'pip install --upgrade vapi_python' to update the SDK")
+        print("5. If the issue persists, please check the Vapi documentation for any known issues")
 
 if __name__ == "__main__":
     main()

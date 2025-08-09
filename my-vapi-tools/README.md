@@ -40,6 +40,10 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Start the server
+python symptom_search_server.py
+# Server will run on http://localhost:8080
 ```
 
 ### 2. Configure Environment Variables

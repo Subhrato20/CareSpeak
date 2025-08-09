@@ -4,6 +4,8 @@ import os
 from dotenv import load_dotenv
 import logging
 
+
+
 # Load environment variables
 load_dotenv()
 
@@ -142,8 +144,8 @@ def index():
     })
 
 if __name__ == '__main__':
-    # Get port from environment variable or default to 5000
-    port = int(os.environ.get('PORT', 5000))
+    # Get port from environment variable or default to 8080
+    port = int(os.environ.get('PORT', 8080))
     
     # Check if required API keys are configured
     if not os.getenv('SEARCHAPI_API_KEY'):

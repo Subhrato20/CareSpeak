@@ -11,7 +11,7 @@ Your symptom search pipeline uses **HTTP endpoints**, not WebSocket connections,
    cd my-vapi-tools
    python symptom_search_server.py
    ```
-   Server will run on `http://localhost:5000`
+   Server will run on `http://localhost:8080`
 
 2. **Environment Variables**: Make sure your `.env` file is configured with:
    - `SEARCHAPI_API_KEY`
@@ -23,7 +23,7 @@ Your symptom search pipeline uses **HTTP endpoints**, not WebSocket connections,
 
 **Request:**
 - **Method**: `GET`
-- **URL**: `http://localhost:5000/health`
+- **URL**: `http://localhost:8080/health`
 - **Headers**: None required
 
 **Expected Response:**
@@ -38,7 +38,7 @@ Your symptom search pipeline uses **HTTP endpoints**, not WebSocket connections,
 
 **Request:**
 - **Method**: `GET`
-- **URL**: `http://localhost:5000/`
+- **URL**: `http://localhost:8080/`
 - **Headers**: None required
 
 **Expected Response:**
@@ -65,7 +65,7 @@ Your symptom search pipeline uses **HTTP endpoints**, not WebSocket connections,
 
 **Request:**
 - **Method**: `POST`
-- **URL**: `http://localhost:5000/process_conversation`
+- **URL**: `http://localhost:8080/process_conversation`
 - **Headers**:
   - `Content-Type: application/json`
 
@@ -121,7 +121,7 @@ Your symptom search pipeline uses **HTTP endpoints**, not WebSocket connections,
 
 **Request:**
 - **Method**: `POST`
-- **URL**: `http://localhost:5000/webhook`
+- **URL**: `http://localhost:8080/webhook`
 - **Headers**:
   - `Content-Type: application/json`
 
@@ -174,7 +174,7 @@ Your symptom search pipeline uses **HTTP endpoints**, not WebSocket connections,
 1. Click "Environments" → "New Environment"
 2. Name it "Local Development"
 3. Add these variables:
-   - `base_url`: `http://localhost:5000`
+   - `base_url`: `http://localhost:8080`
    - `conversation`: `I've been having headaches and fever for the past 2 days`
 
 ### 3. Create Requests
@@ -283,7 +283,7 @@ Your symptom search pipeline uses **HTTP endpoints**, not WebSocket connections,
 
 1. **Connection Refused**
    - Make sure the Flask server is running
-   - Check if the port is correct (default: 5000)
+   - Check if the port is correct (default: 8080)
 
 2. **500 Internal Server Error**
    - Check if API keys are configured in `.env`

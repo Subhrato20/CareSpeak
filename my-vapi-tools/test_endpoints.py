@@ -8,7 +8,7 @@ import requests
 import json
 import time
 
-def test_endpoints(base_url="http://localhost:5000"):
+def test_endpoints(base_url="http://localhost:8080"):
     """Test all endpoints of the symptom search pipeline."""
     
     print(f"🧪 Testing endpoints at {base_url}")
@@ -141,7 +141,7 @@ def test_endpoints(base_url="http://localhost:5000"):
 if __name__ == "__main__":
     # Check if server is running
     try:
-        response = requests.get("http://localhost:5000/health", timeout=5)
+        response = requests.get("http://localhost:8080/health", timeout=5)
         if response.status_code == 200:
             test_endpoints()
         else:
@@ -150,7 +150,7 @@ if __name__ == "__main__":
             print("cd my-vapi-tools")
             print("python symptom_search_server.py")
     except requests.exceptions.ConnectionError:
-        print("❌ Cannot connect to server at http://localhost:5000")
+        print("❌ Cannot connect to server at http://localhost:8080")
         print("Please start the server first:")
         print("cd my-vapi-tools")
         print("python symptom_search_server.py")

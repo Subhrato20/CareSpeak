@@ -13,6 +13,22 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
+def clear_proxy_settings():
+    """
+    Clear any proxy-related environment variables that might be causing issues.
+    This function ensures that the symptom search tool works correctly without proxy interference.
+    """
+    proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'no_proxy']
+    for var in proxy_vars:
+        if var in os.environ:
+            del os.environ[var]
+    
+    # Clear any Vapi-related environment variables that might be causing issues
+    vapi_vars = ['VAPI_INSTALL', 'VAPI_CONFIG', 'VAPI_ENV']
+    for var in vapi_vars:
+        if var in os.environ:
+            del os.environ[var]
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint for Vapi."""
@@ -29,6 +45,9 @@ def search_symptoms():
     }
     """
     try:
+        # Clear proxy settings before processing
+        clear_proxy_settings()
+        
         # Get JSON data from request
         data = request.get_json()
         
@@ -72,6 +91,9 @@ def webhook():
     This endpoint handles the Vapi function calling format.
     """
     try:
+        # Clear proxy settings before processing
+        clear_proxy_settings()
+        
         data = request.get_json()
         logger.info(f"Received webhook request: {data}")
         
@@ -144,6 +166,9 @@ if __name__ == '__main__':
         logger.error("SEARCHAPI_API_KEY not found in environment variables")
         logger.error("Please add SEARCHAPI_API_KEY to your .env file")
         exit(1)
+    
+    # Clear proxy settings before starting the server
+    clear_proxy_settings()
     
     logger.info(f"Starting Symptom Search Tool server on port {port}")
     app.run(host='0.0.0.0', port=port, debug=True)

@@ -43,6 +43,10 @@ cd my-vapi-tools
 
 # Run the quick start script
 ./quick_start.sh
+
+# Start the server (in a new terminal)
+python symptom_search_server.py
+# Server will run on http://localhost:8080
 ```
 
 This will:

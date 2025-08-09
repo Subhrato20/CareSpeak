@@ -3,7 +3,11 @@ import json
 import requests
 from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
-import openai
+from openai import OpenAI
+
+# Create a clean session without proxies to avoid issues
+session = requests.Session()
+session.proxies = {}
 
 # Load environment variables
 load_dotenv()
@@ -29,8 +33,22 @@ class SymptomSearchPipeline:
         if not self.openai_api_key:
             raise ValueError("OPENAI_API_KEY not found in environment variables")
         
-        # Initialize OpenAI client
-        openai.api_key = self.openai_api_key
+        # Initialize OpenAI client with clean configuration
+        try:
+            self.client = OpenAI(api_key=self.openai_api_key)
+        except TypeError as e:
+            if "proxies" in str(e):
+                # Handle the proxies issue by ensuring clean initialization
+                print("Warning: Detected proxies parameter issue, attempting clean initialization...")
+                # Clear any proxy-related environment variables
+                proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'NO_PROXY', 'no_proxy']
+                for var in proxy_vars:
+                    if var in os.environ:
+                        del os.environ[var]
+                # Try again with clean environment
+                self.client = OpenAI(api_key=self.openai_api_key)
+            else:
+                raise e
     
     def extract_symptoms_from_conversation(self, conversation: str) -> Dict:
         """
@@ -67,9 +85,11 @@ class SymptomSearchPipeline:
                 "duration": "2 days",
                 "context": "User has been experiencing these symptoms for the past 2 days"
             }
+            
+            IMPORTANT: Return ONLY valid JSON, no additional text or explanations.
             """
             
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -81,21 +101,101 @@ class SymptomSearchPipeline:
             
             # Parse the JSON response
             content = response.choices[0].message.content.strip()
+            
+            # Clean up the content - remove markdown code blocks if present
             if content.startswith('```json'):
                 content = content[7:-3]  # Remove ```json and ``` markers
             elif content.startswith('```'):
                 content = content[3:-3]  # Remove ``` markers
             
-            result = json.loads(content)
+            # Remove any leading/trailing whitespace
+            content = content.strip()
+            
+            # Try to parse the JSON
+            try:
+                result = json.loads(content)
+            except json.JSONDecodeError as e:
+                # If JSON parsing fails, try to extract symptoms manually
+                print(f"JSON parsing failed: {e}. Content: {content}")
+                
+                # Fallback: try to extract symptoms using a simpler approach
+                fallback_symptoms = self._extract_symptoms_fallback(conversation)
+                result = {
+                    "symptoms": fallback_symptoms,
+                    "severity": "moderate",
+                    "duration": None,
+                    "context": "Extracted using fallback method"
+                }
+            
+            # Ensure the result has the required fields
+            if not isinstance(result, dict):
+                result = {}
+            
+            # Ensure symptoms is always a list
+            if 'symptoms' not in result or not isinstance(result['symptoms'], list):
+                result['symptoms'] = []
+            
+            # Ensure other fields exist
+            result.setdefault('severity', 'unknown')
+            result.setdefault('duration', None)
+            result.setdefault('context', None)
+            
             return result
             
         except Exception as e:
+            print(f"Error in extract_symptoms_from_conversation: {str(e)}")
+            # Fallback: try to extract symptoms manually
+            fallback_symptoms = self._extract_symptoms_fallback(conversation)
             return {
-                "symptoms": [],
+                "symptoms": fallback_symptoms,
                 "severity": "unknown",
                 "duration": None,
                 "context": f"Error extracting symptoms: {str(e)}"
             }
+    
+    def _extract_symptoms_fallback(self, conversation: str) -> List[str]:
+        """
+        Fallback method to extract symptoms when GPT parsing fails.
+        
+        Args:
+            conversation (str): User's conversation
+            
+        Returns:
+            List[str]: List of extracted symptoms
+        """
+        conversation_lower = conversation.lower()
+        symptoms = []
+        
+        # Common symptom keywords
+        symptom_keywords = {
+            'headache': ['headache', 'head pain', 'migraine'],
+            'fever': ['fever', 'temperature', 'hot'],
+            'sore throat': ['sore throat', 'throat pain', 'throat sore'],
+            'cough': ['cough', 'coughing', 'dry cough'],
+            'fatigue': ['fatigue', 'tired', 'exhausted', 'weak'],
+            'body aches': ['body aches', 'muscle pain', 'joint pain', 'achy'],
+            'nausea': ['nausea', 'sick', 'queasy'],
+            'congestion': ['congestion', 'stuffy nose', 'blocked nose'],
+            'runny nose': ['runny nose', 'dripping nose'],
+            'sneezing': ['sneezing', 'sneeze'],
+            'itchy eyes': ['itchy eyes', 'eye irritation'],
+            'back pain': ['back pain', 'backache'],
+            'stomach pain': ['stomach pain', 'abdominal pain', 'belly ache'],
+            'insomnia': ['insomnia', 'trouble sleeping', 'can\'t sleep'],
+            'anxiety': ['anxiety', 'anxious', 'worried'],
+            'stress': ['stress', 'stressed'],
+            'allergies': ['allergies', 'allergic']
+        }
+        
+        # Check for each symptom
+        for symptom, keywords in symptom_keywords.items():
+            for keyword in keywords:
+                if keyword in conversation_lower:
+                    if symptom not in symptoms:
+                        symptoms.append(symptom)
+                    break
+        
+        return symptoms
     
     def recommend_medicines_from_symptoms(self, symptoms_data: Dict) -> List[str]:
         """
@@ -132,11 +232,13 @@ class SymptomSearchPipeline:
             
             Return only a JSON array of medicine names (strings), no explanations.
             Example: ["acetaminophen", "ibuprofen", "throat lozenges"]
+            
+            IMPORTANT: Return ONLY valid JSON array, no additional text or explanations.
             """
             
             user_prompt = f"Symptoms: {', '.join(symptoms)}\nSeverity: {symptoms_data.get('severity', 'unknown')}\nDuration: {symptoms_data.get('duration', 'unknown')}"
             
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -147,16 +249,75 @@ class SymptomSearchPipeline:
             )
             
             content = response.choices[0].message.content.strip()
+            
+            # Clean up the content - remove markdown code blocks if present
             if content.startswith('```json'):
                 content = content[7:-3]
             elif content.startswith('```'):
                 content = content[3:-3]
             
-            medicines = json.loads(content)
-            return medicines if isinstance(medicines, list) else []
+            # Remove any leading/trailing whitespace
+            content = content.strip()
+            
+            try:
+                medicines = json.loads(content)
+                if isinstance(medicines, list):
+                    return medicines
+                else:
+                    print(f"Invalid medicine format: {medicines}")
+                    return self._recommend_medicines_fallback(symptoms)
+            except json.JSONDecodeError as e:
+                print(f"Medicine JSON parsing failed: {e}. Content: {content}")
+                return self._recommend_medicines_fallback(symptoms)
             
         except Exception as e:
-            return []
+            print(f"Error in recommend_medicines_from_symptoms: {str(e)}")
+            return self._recommend_medicines_fallback(symptoms)
+    
+    def _recommend_medicines_fallback(self, symptoms: List[str]) -> List[str]:
+        """
+        Fallback method to recommend medicines when GPT parsing fails.
+        
+        Args:
+            symptoms (List[str]): List of symptoms
+            
+        Returns:
+            List[str]: List of recommended medicines
+        """
+        medicine_mappings = {
+            'headache': ['acetaminophen', 'ibuprofen', 'aspirin'],
+            'fever': ['acetaminophen', 'ibuprofen'],
+            'sore throat': ['throat lozenges', 'acetaminophen', 'ibuprofen'],
+            'cough': ['dextromethorphan', 'guaifenesin', 'cough syrup'],
+            'fatigue': ['caffeine', 'vitamin b12'],
+            'body aches': ['ibuprofen', 'acetaminophen'],
+            'nausea': ['pepto-bismol', 'ginger'],
+            'congestion': ['pseudoephedrine', 'saline nasal spray'],
+            'runny nose': ['antihistamines', 'saline nasal spray'],
+            'sneezing': ['antihistamines', 'cetirizine'],
+            'itchy eyes': ['antihistamine eye drops', 'cetirizine'],
+            'back pain': ['ibuprofen', 'acetaminophen', 'topical analgesics'],
+            'stomach pain': ['pepto-bismol', 'antacids'],
+            'insomnia': ['diphenhydramine', 'melatonin'],
+            'anxiety': ['valerian root', 'chamomile'],
+            'stress': ['b vitamins', 'magnesium'],
+            'allergies': ['cetirizine', 'loratadine', 'diphenhydramine']
+        }
+        
+        recommended_medicines = []
+        for symptom in symptoms:
+            if symptom in medicine_mappings:
+                recommended_medicines.extend(medicine_mappings[symptom])
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_medicines = []
+        for medicine in recommended_medicines:
+            if medicine not in seen:
+                seen.add(medicine)
+                unique_medicines.append(medicine)
+        
+        return unique_medicines
     
     def search_medicines_on_amazon(self, medicine_names: List[str], max_results: int = 5) -> Dict:
         """
@@ -182,8 +343,8 @@ class SymptomSearchPipeline:
                     "sort_by": "featured"
                 }
                 
-                # Make API request
-                response = requests.get(self.base_search_url, params=params, timeout=30)
+                # Make API request using clean session
+                response = session.get(self.base_search_url, params=params, timeout=30)
                 response.raise_for_status()
                 
                 data = response.json()
@@ -272,7 +433,7 @@ class SymptomSearchPipeline:
             Please create a natural, conversational response for voice communication that summarizes the recommended medicines and products.
             """
             
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -363,6 +524,24 @@ def process_symptom_conversation(conversation: str, max_results: int = 5) -> Dic
         Dict: Complete pipeline results with natural language response
     """
     try:
+        # Clear any proxy-related environment variables that might be causing issues
+        proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'NO_PROXY', 'no_proxy']
+        for var in proxy_vars:
+            if var in os.environ:
+                del os.environ[var]
+
+        # Clear any Vapi-related environment variables that might be causing issues
+        vapi_vars = ['VAPI_INSTALL', 'VAPI_CONFIG', 'VAPI_ENV']
+        for var in vapi_vars:
+            if var in os.environ:
+                del os.environ[var]
+        
+        # Clear any requests-related environment variables that might cause issues
+        requests_vars = ['REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE', 'SSL_CERT_FILE']
+        for var in requests_vars:
+            if var in os.environ:
+                del os.environ[var]
+        
         pipeline = SymptomSearchPipeline()
         results = pipeline.process_conversation(conversation, max_results)
         

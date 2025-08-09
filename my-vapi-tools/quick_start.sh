@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Quick Start Script for Vapi Tools
+# Quick Start Script for Vapi Tools - Multi-Layer GPT Pipeline
 # This script helps you set up and test the Vapi tools
 
 set -e
 
-echo "🚀 Quick Start Script for Vapi Tools"
-echo "===================================="
+echo "🚀 Quick Start Script for Vapi Tools - Multi-Layer GPT Pipeline"
+echo "=============================================================="
 
 # Check if Python is installed
 if ! command -v python3 &> /dev/null; then
@@ -34,9 +34,11 @@ if [ ! -f ".env" ]; then
     cp env.example .env
     echo "⚠️  Please edit .env file with your actual credentials:"
     echo "   - SEARCHAPI_API_KEY: Your SearchAPI key"
+    echo "   - OPENAI_API_KEY: Your OpenAI API key"
     echo ""
-    echo "   You can get this from:"
+    echo "   You can get these from:"
     echo "   - SearchAPI: https://www.searchapi.io/"
+    echo "   - OpenAI: https://platform.openai.com/api-keys"
     echo ""
     read -p "Press Enter after you've updated the .env file..."
 else
@@ -50,13 +52,26 @@ if ! grep -q "SEARCHAPI_API_KEY=.*[^[:space:]]" .env 2>/dev/null || grep -q "SEA
     exit 1
 fi
 
+# Check if OpenAI key is configured
+if ! grep -q "OPENAI_API_KEY=.*[^[:space:]]" .env 2>/dev/null || grep -q "OPENAI_API_KEY=your-openai-key-here" .env; then
+    echo "❌ OPENAI_API_KEY not configured in .env file"
+    echo "Please add your OpenAI API key to the .env file"
+    exit 1
+fi
+
 echo ""
-echo "🧪 Testing the symptom search tool..."
+echo "🧪 Testing the multi-layer GPT pipeline..."
 
 # Run the test script
-if python test_symptom_search.py; then
+if python test_pipeline.py; then
     echo ""
     echo "🎉 Setup completed successfully!"
+    echo ""
+    echo "Pipeline Flow:"
+    echo "1. User conversation → GPT extracts symptoms"
+    echo "2. Symptoms → GPT recommends specific medicines"
+    echo "3. Medicine names → SearchAPI finds products on Amazon"
+    echo "4. SearchAPI JSON → GPT extracts details and formats natural language response"
     echo ""
     echo "Next steps:"
     echo "1. Deploy the symptom_search_server.py to a cloud platform"
@@ -71,17 +86,18 @@ if python test_symptom_search.py; then
     echo ""
     echo "3. Add the tool to your assistant:"
     echo "   - Go to your Assistant in Vapi dashboard"
-    echo "   - Add the symptom_search_tool"
+    echo "   - Add the symptom_search_pipeline"
     echo "   - Test with voice conversations"
     echo ""
     echo "📚 Documentation:"
     echo "   - README.md - This file"
-    echo "   - SYMPTOM_SEARCH_README.md - Detailed setup guide"
-    echo "   - DEPLOYMENT_GUIDE.md - Deployment instructions"
+    echo "   - DEPLOYMENT_GUIDE.md - Complete deployment instructions"
+    echo "   - DEPLOY_QUICK.md - Quick deployment guide"
     echo ""
     echo "🔗 Useful Links:"
     echo "   - Vapi Dashboard: https://dashboard.vapi.ai"
     echo "   - SearchAPI: https://www.searchapi.io/"
+    echo "   - OpenAI: https://platform.openai.com/"
     echo "   - Vapi Docs: https://docs.vapi.ai"
     echo ""
 else
@@ -90,8 +106,9 @@ else
     echo ""
     echo "Common issues:"
     echo "1. SEARCHAPI_API_KEY not configured correctly"
-    echo "2. Internet connection issues"
-    echo "3. SearchAPI service temporarily unavailable"
+    echo "2. OPENAI_API_KEY not configured correctly"
+    echo "3. Internet connection issues"
+    echo "4. API service temporarily unavailable"
     echo ""
     exit 1
 fi

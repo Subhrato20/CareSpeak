@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from symptom_search_tool import search_products_for_symptoms
+from symptom_search_pipeline import process_symptom_conversation
 import os
 from dotenv import load_dotenv
 import logging
@@ -16,15 +16,15 @@ app = Flask(__name__)
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint for Vapi."""
-    return jsonify({"status": "healthy", "service": "symptom-search-tool"})
+    return jsonify({"status": "healthy", "service": "symptom-search-pipeline"})
 
-@app.route('/search_symptoms', methods=['POST'])
-def search_symptoms():
+@app.route('/process_conversation', methods=['POST'])
+def process_conversation():
     """
-    Endpoint for Vapi to call when user reports symptoms.
+    Endpoint for Vapi to call when user reports symptoms or health concerns.
     Expected JSON payload:
     {
-        "symptoms": "headache and fever",
+        "conversation": "I've been having headaches and fever for the past 2 days",
         "max_results": 5
     }
     """
@@ -38,28 +38,28 @@ def search_symptoms():
                 "message": "No JSON data provided"
             }), 400
         
-        # Extract symptoms from request
-        symptoms = data.get('symptoms')
-        if not symptoms:
+        # Extract conversation from request
+        conversation = data.get('conversation')
+        if not conversation:
             return jsonify({
                 "status": "error",
-                "message": "Symptoms parameter is required"
+                "message": "Conversation parameter is required"
             }), 400
         
         # Get max_results (optional, default 5)
         max_results = data.get('max_results', 5)
         
-        logger.info(f"Searching for products based on symptoms: {symptoms}")
+        logger.info(f"Processing conversation: {conversation[:100]}...")
         
-        # Call the symptom search tool
-        results = search_products_for_symptoms(symptoms, max_results)
+        # Call the symptom search pipeline
+        results = process_symptom_conversation(conversation, max_results)
         
-        logger.info(f"Search completed. Found {len(results.get('results', []))} results")
+        logger.info(f"Pipeline completed. Status: {results.get('status')}")
         
         return jsonify(results)
         
     except Exception as e:
-        logger.error(f"Error processing symptom search request: {str(e)}")
+        logger.error(f"Error processing conversation: {str(e)}")
         return jsonify({
             "status": "error",
             "message": f"Internal server error: {str(e)}"
@@ -92,20 +92,20 @@ def webhook():
         function_name = function_call.get('name')
         arguments = function_call.get('arguments', {})
         
-        if function_name == 'search_products_for_symptoms':
-            symptoms = arguments.get('symptoms')
+        if function_name == 'process_symptom_conversation':
+            conversation = arguments.get('conversation')
             max_results = arguments.get('max_results', 5)
             
-            if not symptoms:
+            if not conversation:
                 return jsonify({
                     "status": "error",
-                    "message": "Symptoms parameter is required"
+                    "message": "Conversation parameter is required"
                 }), 400
             
-            logger.info(f"Processing function call: {function_name} with symptoms: {symptoms}")
+            logger.info(f"Processing function call: {function_name} with conversation: {conversation[:100]}...")
             
-            # Call the symptom search tool
-            results = search_products_for_symptoms(symptoms, max_results)
+            # Call the symptom search pipeline
+            results = process_symptom_conversation(conversation, max_results)
             
             return jsonify(results)
         else:
@@ -125,25 +125,36 @@ def webhook():
 def index():
     """Root endpoint with service information."""
     return jsonify({
-        "service": "Symptom Search Tool",
-        "version": "1.0.0",
+        "service": "Symptom Search Pipeline",
+        "version": "2.0.0",
+        "description": "Multi-layer GPT pipeline for symptom extraction, medicine recommendation, and natural language response generation",
         "endpoints": {
             "health": "/health",
-            "search_symptoms": "/search_symptoms",
+            "process_conversation": "/process_conversation",
             "webhook": "/webhook"
         },
-        "description": "A tool that searches for Amazon products based on user symptoms using the Amazon Search API."
+        "pipeline_steps": [
+            "Layer 1: Extract symptoms from conversation using GPT",
+            "Layer 2: Recommend medicines based on symptoms using GPT", 
+            "Layer 3: Search for medicines on Amazon using SearchAPI",
+            "Layer 4: Extract details and format natural language response using GPT"
+        ]
     })
 
 if __name__ == '__main__':
     # Get port from environment variable or default to 5000
     port = int(os.environ.get('PORT', 5000))
     
-    # Check if SearchAPI key is configured
+    # Check if required API keys are configured
     if not os.getenv('SEARCHAPI_API_KEY'):
         logger.error("SEARCHAPI_API_KEY not found in environment variables")
         logger.error("Please add SEARCHAPI_API_KEY to your .env file")
         exit(1)
     
-    logger.info(f"Starting Symptom Search Tool server on port {port}")
+    if not os.getenv('OPENAI_API_KEY'):
+        logger.error("OPENAI_API_KEY not found in environment variables")
+        logger.error("Please add OPENAI_API_KEY to your .env file")
+        exit(1)
+    
+    logger.info(f"Starting Symptom Search Pipeline server on port {port}")
     app.run(host='0.0.0.0', port=port, debug=True)

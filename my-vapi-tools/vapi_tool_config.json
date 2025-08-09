@@ -1,35 +1,35 @@
 {
   "type": "function",
-  "name": "symptom_search_tool",
-  "description": "Search for Amazon products based on user symptoms. This tool helps users find relevant health and wellness products when they report symptoms or health concerns.",
+  "name": "symptom_search_pipeline",
+  "description": "Multi-layer GPT pipeline for symptom extraction, medicine recommendation, and natural language response generation. Processes user conversations to extract symptoms, recommend medicines, search Amazon, and provide natural language responses.",
   "url": "https://your-server-url.com/webhook",
   "function": {
-    "name": "search_products_for_symptoms",
-    "description": "Search for products on Amazon based on user symptoms",
+    "name": "process_symptom_conversation",
+    "description": "Process user conversation through multi-layer GPT pipeline to extract symptoms, recommend medicines, search Amazon, and generate natural language response",
     "parameters": {
       "type": "object",
       "properties": {
-        "symptoms": {
+        "conversation": {
           "type": "string",
-          "description": "The user's symptoms or health concerns (e.g., 'headache and fever', 'sore throat', 'back pain')"
+          "description": "The user's conversation or description of their symptoms and health concerns (e.g., 'I've been having headaches and fever for the past 2 days')"
         },
         "max_results": {
           "type": "integer",
-          "description": "Maximum number of product results to return (default: 5, max: 10)",
+          "description": "Maximum number of product results to return per medicine (default: 5, max: 10)",
           "default": 5,
           "minimum": 1,
           "maximum": 10
         }
       },
-      "required": ["symptoms"]
+      "required": ["conversation"]
     }
   },
   "messages": {
     "request": {
-      "start": "I'm searching for products that might help with your symptoms. Please wait a moment...",
-      "complete": "I found some product recommendations based on your symptoms.",
-      "failed": "I couldn't search for products right now. Please try again later.",
-      "delay": "I'm still searching for products. This might take a few more seconds..."
+      "start": "I'm analyzing your symptoms and searching for relevant medicines. Please wait a moment...",
+      "complete": "I've found some medicine recommendations based on your symptoms.",
+      "failed": "I couldn't process your symptoms right now. Please try again later.",
+      "delay": "I'm still analyzing your symptoms and searching for medicines. This might take a few more seconds..."
     }
   }
 }

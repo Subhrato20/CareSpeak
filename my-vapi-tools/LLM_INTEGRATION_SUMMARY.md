@@ -18,17 +18,19 @@ The `symptom_search_tool.py` has been enhanced with LLM (Large Language Model) i
 
 ### 3. LLM-Powered Response Generation
 The new system provides:
-- **Natural Language**: Conversational, friendly responses
-- **Context Awareness**: Mentions user symptoms and provides relevant recommendations
-- **Safety Disclaimers**: Always includes medical consultation advice
-- **Product Information**: Includes prices, ratings, and reviews naturally
+- **Concise Format**: Simple product names and prices only
+- **Clean Output**: No extra text, ratings, or disclaimers
+- **Easy to Read**: Bullet-point format for quick scanning
 - **Fallback Support**: Graceful degradation to template formatting if LLM fails
 
 ## Key Features
 
-### Natural Language Output
-Instead of structured lists, the LLM generates responses like:
-> "Oh, dealing with a headache and fever is never fun, but there are a few options that might help ease your symptoms. If you're looking for something specifically to target pain relief and reduce fever, you might want to consider Tylenol Extra Strength Acetaminophen. It's well-rated with a 4.5 out of 5 stars from over 1,250 reviews, and is priced at $12.99..."
+### Concise Product List
+The LLM now generates simple, clean product lists like:
+> "- Amazon Basic Care Migraine Relief Geltabs, Acetaminophen, Aspirin (NSAID) and Caffeine, 80 Count - $8.05
+- Amazon Basic Care Headache Relief Geltabs, 80 Count - $5.66
+- Amazon Basic Care Migraine Relief, Acetaminophen, Aspirin (NSAID) and Caffeine Tablets, 200 Count - $15.54
+- Excedrin Tension Headache Relief Caplets, Acetaminophen 500mg, Caffeine 65mg, Aspirin-Free, 100 Count - $11.48"
 
 ### Fallback Mechanism
 - **Primary**: LLM-generated natural language responses
@@ -60,9 +62,9 @@ formatted_response = tool.format_results_for_voice(results)  # Uses fallback
 
 ## Benefits
 
-1. **Better User Experience**: More natural, conversational responses
-2. **Contextual Information**: Better integration of symptoms and recommendations
-3. **Professional Tone**: Maintains medical disclaimers and safety advice
+1. **Clean Output**: Simple product names and prices only
+2. **Easy to Read**: Bullet-point format for quick scanning
+3. **No Clutter**: Removes ratings, reviews, and medical disclaimers
 4. **Flexibility**: Works with or without LLM capabilities
 5. **Reliability**: Robust fallback mechanisms ensure always functional
 

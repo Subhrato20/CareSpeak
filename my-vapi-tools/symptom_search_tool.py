@@ -353,32 +353,27 @@ class SymptomSearchTool:
             str: LLM-generated natural language response
         """
         system_prompt = """
-        You are a helpful medical assistant who provides natural, conversational responses about medicine recommendations.
+        You are a helpful medical assistant who provides concise product recommendations.
         
-        Your task is to create a natural language response for voice communication based on Amazon search results.
+        Your task is to create a simple response listing product names and prices from Amazon search results.
         
         GUIDELINES:
-        - Be conversational and friendly
-        - Mention the symptoms the user reported
-        - Include medicine names, prices, and ratings when available
-        - Organize information naturally
-        - Include safety disclaimers
-        - Keep it concise but informative
-        - Use natural speech patterns
-        - Avoid medical jargon
-        - Always recommend consulting a healthcare professional
-        - Make it sound like a helpful conversation, not a list
+        - Be brief and direct
+        - List only product names and prices
+        - Skip ratings, reviews, and other details
+        - Use simple format: "Product Name - Price"
+        - Keep it short and easy to understand
+        - No medical advice or disclaimers
+        - Just focus on the products and their prices
         
-        Format the response as a natural, conversational paragraph suitable for voice communication.
+        Format as a simple list of products with prices.
         """
         
         user_prompt = f"""
-        Based on these symptoms: {results['symptoms']}
-        
         Here are the Amazon search results:
         {json.dumps(results['results'], indent=2)}
         
-        Please create a natural, conversational response for voice communication that summarizes the recommended medicines and products.
+        Please list only the product names and prices in a simple format.
         """
         
         response = self._chat_completion(
@@ -387,8 +382,8 @@ class SymptomSearchTool:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.8,
-            max_tokens=400
+            temperature=0.3,
+            max_tokens=200
         )
         
         return response.choices[0].message.content.strip()
@@ -403,19 +398,14 @@ class SymptomSearchTool:
         Returns:
             str: Formatted voice response
         """
-        response_parts = [f"Based on your symptoms of {results['symptoms']}, I found {len(results['results'])} product recommendations:"]
+        response_parts = []
         
-        for i, product in enumerate(results["results"], 1):
-            rating_text = f" with a {product['rating']} star rating from {product['reviews']} reviews" if product['rating'] > 0 else ""
-            price_text = f" for {product['price']}" if product['price'] != "Price not available" else ""
-            
-            response_parts.append(
-                f"{i}. {product['title']}{rating_text}{price_text}."
-            )
+        for product in results["results"]:
+            title = product['title']
+            price = product['price'] if product['price'] != "Price not available" else "Price not available"
+            response_parts.append(f"{title} - {price}")
         
-        response_parts.append("These are general recommendations. Please consult with a healthcare professional for medical advice, especially if symptoms persist or worsen.")
-        
-        return " ".join(response_parts)
+        return ". ".join(response_parts)
 
 
 # Function to be called by Vapi

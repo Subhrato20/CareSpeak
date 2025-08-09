@@ -89,13 +89,13 @@ class SymptomSearchPipeline:
             IMPORTANT: Return ONLY valid JSON, no additional text or explanations.
             """
             
-            response = self.client.chat.completions.create(
-                model="gpt-5",
+            response = self._chat_completion(
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": conversation}
                 ],
-                temperature=0.1,
+                temperature=1.0,
                 max_tokens=300
             )
             
@@ -238,13 +238,13 @@ class SymptomSearchPipeline:
             
             user_prompt = f"Symptoms: {', '.join(symptoms)}\nSeverity: {symptoms_data.get('severity', 'unknown')}\nDuration: {symptoms_data.get('duration', 'unknown')}"
             
-            response = self.client.chat.completions.create(
-                model="gpt-5",
+            response = self._chat_completion(
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.1,
+                temperature=1.0,
                 max_tokens=200
             )
             
@@ -433,13 +433,13 @@ class SymptomSearchPipeline:
             Please create a natural, conversational response for voice communication that summarizes the recommended medicines and products.
             """
             
-            response = self.client.chat.completions.create(
-                model="gpt-5",
+            response = self._chat_completion(
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.7,
+                temperature=1.0,
                 max_tokens=500
             )
             
@@ -447,6 +447,45 @@ class SymptomSearchPipeline:
             
         except Exception as e:
             return f"I found some products for your symptoms, but I encountered an issue formatting the details. Please consult with a healthcare professional for personalized advice."
+
+    def _chat_completion(self, model: str, messages: List[Dict[str, str]], temperature: float, max_tokens: int):
+        """
+        Compatibility wrapper for chat.completions.create across SDK/model variants.
+        Tries 'max_completion_tokens' first, falls back to 'max_tokens', and vice versa.
+        """
+        # Try with max_completion_tokens first
+        try:
+            return self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_completion_tokens=max_tokens,
+            )
+        except Exception as first_error:
+            error_text = str(first_error)
+            # If max_completion_tokens is unsupported, try max_tokens
+            try:
+                return self.client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+            except Exception as second_error:
+                # Final attempt: omit token parameter entirely
+                try:
+                    return self.client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        temperature=temperature,
+                    )
+                except Exception as third_error:
+                    # Raise combined error info
+                    raise Exception(
+                        f"First attempt failed with max_completion_tokens: {error_text}; "
+                        f"Second attempt with max_tokens failed: {second_error}; "
+                        f"Third attempt without token param failed: {third_error}"
+                    )
     
     def process_conversation(self, conversation: str, max_results: int = 5) -> Dict:
         """

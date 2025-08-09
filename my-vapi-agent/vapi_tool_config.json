@@ -1,0 +1,35 @@
+{
+  "type": "function",
+  "name": "symptom_search_tool",
+  "description": "Search for Amazon products based on user symptoms. This tool helps users find relevant health and wellness products when they report symptoms or health concerns.",
+  "url": "https://your-server-url.com/webhook",
+  "function": {
+    "name": "search_products_for_symptoms",
+    "description": "Search for products on Amazon based on user symptoms",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "symptoms": {
+          "type": "string",
+          "description": "The user's symptoms or health concerns (e.g., 'headache and fever', 'sore throat', 'back pain')"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of product results to return (default: 5, max: 10)",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 10
+        }
+      },
+      "required": ["symptoms"]
+    }
+  },
+  "messages": {
+    "request": {
+      "start": "I'm searching for products that might help with your symptoms. Please wait a moment...",
+      "complete": "I found some product recommendations based on your symptoms.",
+      "failed": "I couldn't search for products right now. Please try again later.",
+      "delay": "I'm still searching for products. This might take a few more seconds..."
+    }
+  }
+}

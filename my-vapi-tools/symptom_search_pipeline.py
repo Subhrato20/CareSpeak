@@ -395,25 +395,23 @@ class SymptomSearchPipeline:
         """
         try:
             if search_results.get("status") != "success" or not search_results.get("results"):
-                return f"I couldn't find specific products for your symptoms of {', '.join(original_symptoms.get('symptoms', []))}. Please consult with a healthcare professional for medical advice."
+                return "No products found."
             
             system_prompt = """
-            You are a helpful medical assistant who provides natural, conversational responses about medicine recommendations.
+            You are a helpful assistant who provides simple product listings.
             
-            Your task is to extract key information from Amazon search results and create a natural language response for voice communication.
+            Your task is to extract ONLY product names and prices from Amazon search results and create a simple list.
             
             GUIDELINES:
-            - Be conversational and friendly
-            - Mention the symptoms the user reported
-            - Include medicine names, prices, and ratings when available
-            - Organize by medicine type/category
-            - Include safety disclaimers
-            - Keep it concise but informative
-            - Use natural speech patterns
-            - Avoid medical jargon
-            - Always recommend consulting a healthcare professional
+            - List ONLY the FIRST 3 products with their prices
+            - Use numeric format: "1. Product Name - Price"
+            - Skip ratings, reviews, descriptions, and other details
+            - Keep it very brief and direct
+            - No medical advice or disclaimers
+            - No conversational text
+            - Just the first 3 products and their prices
             
-            Format the response as a natural, conversational paragraph suitable for voice communication.
+            Format as a numbered list of the first 3 products with prices only.
             """
             
             # Prepare context for GPT
@@ -425,12 +423,10 @@ class SymptomSearchPipeline:
             }
             
             user_prompt = f"""
-            Based on these symptoms: {', '.join(context['symptoms'])} (severity: {context['severity']}, duration: {context['duration'] or 'unknown'})
-            
             Here are the Amazon search results:
             {json.dumps(context['search_results'], indent=2)}
             
-            Please create a natural, conversational response for voice communication that summarizes the recommended medicines and products.
+            Please list only the FIRST 3 product names and prices in a numbered format (1, 2, 3).
             """
             
             response = self._chat_completion(
@@ -446,7 +442,7 @@ class SymptomSearchPipeline:
             return response.choices[0].message.content.strip()
             
         except Exception as e:
-            return f"I found some products for your symptoms, but I encountered an issue formatting the details. Please consult with a healthcare professional for personalized advice."
+            return "Error formatting products."
 
     def _chat_completion(self, model: str, messages: List[Dict[str, str]], temperature: float, max_tokens: int):
         """
@@ -586,9 +582,9 @@ def process_symptom_conversation(conversation: str, max_results: int = 5) -> Dic
         
         # Ensure the natural response is always available
         if results["status"] == "success":
-            results["voice_response"] = results.get("natural_response", "I couldn't process your request. Please try again.")
+            results["voice_response"] = results.get("natural_response", "No products found.")
         else:
-            results["voice_response"] = f"I'm sorry, but I couldn't process your symptoms. {results.get('message', 'Please consult with a healthcare professional.')}"
+            results["voice_response"] = "No products found."
         
         return results
     
@@ -597,7 +593,7 @@ def process_symptom_conversation(conversation: str, max_results: int = 5) -> Dic
             "status": "error",
             "message": f"Failed to process conversation: {str(e)}",
             "conversation": conversation,
-            "voice_response": "I'm sorry, but I encountered an error processing your request. Please try again or consult with a healthcare professional."
+            "voice_response": "No products found."
         }
 
 if __name__ == "__main__":

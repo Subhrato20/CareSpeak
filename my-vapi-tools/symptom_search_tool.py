@@ -328,7 +328,7 @@ class SymptomSearchTool:
             str: Formatted voice response
         """
         if results["status"] != "success" or not results["results"]:
-            return f"I couldn't find any products specifically for {results['symptoms']}. You might want to consult with a healthcare professional for medical advice."
+            return "No products found."
         
         # Try LLM formatting first if available
         if self.openai_client:
@@ -353,27 +353,27 @@ class SymptomSearchTool:
             str: LLM-generated natural language response
         """
         system_prompt = """
-        You are a helpful medical assistant who provides concise product recommendations.
+        You are a helpful assistant who provides simple product listings.
         
-        Your task is to create a simple response listing product names and prices from Amazon search results.
+        Your task is to extract ONLY product names and prices from Amazon search results and create a simple list.
         
         GUIDELINES:
-        - Be brief and direct
-        - List only product names and prices
-        - Skip ratings, reviews, and other details
-        - Use simple format: "Product Name - Price"
-        - Keep it short and easy to understand
+        - List ONLY the FIRST 3 products with their prices
+        - Use numeric format: "1. Product Name - Price"
+        - Skip ratings, reviews, descriptions, and other details
+        - Keep it very brief and direct
         - No medical advice or disclaimers
-        - Just focus on the products and their prices
+        - No conversational text
+        - Just the first 3 products and their prices
         
-        Format as a simple list of products with prices.
+        Format as a numbered list of the first 3 products with prices only.
         """
         
         user_prompt = f"""
         Here are the Amazon search results:
         {json.dumps(results['results'], indent=2)}
         
-        Please list only the product names and prices in a simple format.
+        Please list only the FIRST 3 product names and prices in a numbered format (1, 2, 3).
         """
         
         response = self._chat_completion(
@@ -396,14 +396,15 @@ class SymptomSearchTool:
             results (Dict): Search results
             
         Returns:
-            str: Formatted voice response
+            str: Formatted voice response with only product names and prices
         """
         response_parts = []
         
-        for product in results["results"]:
+        # Limit to first 3 products
+        for i, product in enumerate(results["results"][:3], 1):
             title = product['title']
             price = product['price'] if product['price'] != "Price not available" else "Price not available"
-            response_parts.append(f"{title} - {price}")
+            response_parts.append(f"{i}. {title} - {price}")
         
         return ". ".join(response_parts)
 
